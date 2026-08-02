@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | **Name** | Divyang Lodariya |
-| **Student Number** | `<REPLACE WITH YOUR STUDENT NUMBER>` |
-| **Course** | CST8917 – Serverless Applications |
-| **Assignment** | Assignment 2 – Compare & Contrast |
+| **Student Number** | 041267824 |
+| **Course** | CST8917 - Serverless Applications |
+| **Assignment** | Assignment 2 - Compare & Contrast |
 | **Date** | August 2, 2026 |
 
 ---
@@ -14,8 +14,8 @@
 
 This project builds the **same business workflow twice**, using two different Azure serverless approaches, so we can compare them from real experience:
 
-- **Version A – Azure Durable Functions** (code-first orchestration, Python).
-- **Version B – Azure Logic Apps + Azure Service Bus** (visual / low-code orchestration).
+- **Version A - Azure Durable Functions** (code-first orchestration, Python).
+- **Version B - Azure Logic Apps + Azure Service Bus** (visual / low-code orchestration).
 
 Both implement an **expense approval pipeline** with these rules:
 
@@ -30,7 +30,7 @@ Both implement an **expense approval pipeline** with these rules:
 
 ---
 
-## 2. Version A – Durable Functions
+## 2. Version A - Durable Functions
 
 ### What it is
 A Python v2 Durable Functions app. An HTTP **client** function starts an **orchestrator**, which coordinates **activity** functions. The manager wait is handled with the built-in **Human Interaction pattern**: the orchestrator waits for an external event *or* a durable timer, whichever fires first.
@@ -69,7 +69,7 @@ All six pass locally: under-$100 auto-approve, manager approve, manager reject, 
 
 ---
 
-## 3. Version B – Logic Apps + Service Bus
+## 3. Version B - Logic Apps + Service Bus
 
 ### What it is
 A message arrives in a **Service Bus queue**; a **Logic App** validates it (via an **Azure Function**), applies the rules, publishes the result to a **Service Bus topic** with filtered subscriptions, and emails the employee.
@@ -143,8 +143,8 @@ Version B wins decisively here. Its **run history is a visual, step-by-step time
 
 | Volume | Version A (Durable Functions) | Version B (Logic Apps + Service Bus) |
 |---|---|---|
-| **~100/day** (≈3k/mo) | ~**$0–1** (within the free grant of 1M exec + 400k GB-s) | ~**$12** (≈$10 Service Bus base + ~$2 actions) |
-| **~10,000/day** (≈300k/mo) | ~**$5–15** (≈3M exec, mostly small billable overage + storage) | ~**$250–300** (standard-connector actions dominate: ~1.5M × $0.000125 ≈ $188 + built-in + Service Bus) |
+| **~100/day** (≈3k/mo) | ~**$0-1** (within the free grant of 1M exec + 400k GB-s) | ~**$12** (≈$10 Service Bus base + ~$2 actions) |
+| **~10,000/day** (≈300k/mo) | ~**$5-15** (≈3M exec, mostly small billable overage + storage) | ~**$250-300** (standard-connector actions dominate: ~1.5M × $0.000125 ≈ $188 + built-in + Service Bus) |
 
 Durable Functions is **much cheaper**, and the gap widens at scale because Logic Apps bills **per action** and the managed connectors (Service Bus, Office 365) are the priciest actions.
 
@@ -152,9 +152,9 @@ Durable Functions is **much cheaper**, and the gap widens at scale because Logic
 
 ## 5. Recommendation
 
-**If a team asked me to build this for production, I would choose Version A – Durable Functions.** Three reasons decided it. First, **human interaction with a timeout is native** - the exact requirement of this workflow is a first-class feature, not a workaround, so there is less to get wrong and less to maintain. Second, **testability**: I could run and verify the whole pipeline locally and could add real unit tests, which is essential for a workflow that touches money and must not regress. Third, **cost**: at 10,000 expenses/day the Logic Apps bill is roughly an order of magnitude higher because it charges per action and per managed-connector call. Durable Functions also keeps the entire workflow in source control as one reviewable file, which fits normal engineering practice.
+**If a team asked me to build this for production, I would choose Version A - Durable Functions.** Three reasons decided it. First, **human interaction with a timeout is native** - the exact requirement of this workflow is a first-class feature, not a workaround, so there is less to get wrong and less to maintain. Second, **testability**: I could run and verify the whole pipeline locally and could add real unit tests, which is essential for a workflow that touches money and must not regress. Third, **cost**: at 10,000 expenses/day the Logic Apps bill is roughly an order of magnitude higher because it charges per action and per managed-connector call. Durable Functions also keeps the entire workflow in source control as one reviewable file, which fits normal engineering practice.
 
-**I would choose Version B – Logic Apps instead when the team is not developer-heavy, or when the workflow is mostly gluing SaaS systems together.** Logic Apps needs no local toolchain, its approval email and email-sending connectors work out of the box (no code, no SMTP fights), and its visual run history is the best debugging experience I had in this project. For a low-volume internal approval flow owned by an operations or business team - rather than engineers - its speed to build and clarity to non-developers would outweigh the higher cost and weaker testability. In short: **code-first Durable Functions for scale, correctness, and cost; visual Logic Apps for low-code teams and rich built-in integrations.**
+**I would choose Version B - Logic Apps instead when the team is not developer-heavy, or when the workflow is mostly gluing SaaS systems together.** Logic Apps needs no local toolchain, its approval email and email-sending connectors work out of the box (no code, no SMTP fights), and its visual run history is the best debugging experience I had in this project. For a low-volume internal approval flow owned by an operations or business team - rather than engineers - its speed to build and clarity to non-developers would outweigh the higher cost and weaker testability. In short: **code-first Durable Functions for scale, correctness, and cost; visual Logic Apps for low-code teams and rich built-in integrations.**
 
 ---
 
@@ -201,7 +201,7 @@ func start
 | `Function running locally.png` | Version A running on Azure Functions Core Tools |
 | `scenario 1.png` | Version A auto-approve output |
 | `Run history.png` | Version B - all runs succeeded |
-| `scenario 2–5.png` | Version B outcome emails (approved / rejected / escalated) |
+| `scenario 2-5.png` | Version B outcome emails (approved / rejected / escalated) |
 | `scenario 4.png` | Version B escalation (timeout) email |
 | `service bus topic.png` | Topic subscription counts (approved 3 / rejected 3 / escalated 1) |
 
