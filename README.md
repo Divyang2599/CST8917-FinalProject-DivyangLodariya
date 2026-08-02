@@ -1,4 +1,4 @@
-# Expense Approval Workflow — Dual Implementation (Durable Functions vs. Logic Apps + Service Bus)
+# Expense Approval Workflow - Dual Implementation (Durable Functions vs. Logic Apps + Service Bus)
 
 | | |
 |---|---|
@@ -62,7 +62,7 @@ flowchart TD
 ### Challenges
 - **Core Tools ignored the virtual environment** and tried to use a global Python 3.14, which crashed `func start` (`Destination is too short`). Fixed by pinning `languageWorkers__python__defaultExecutablePath` to the `.venv` interpreter.
 - **Azurite** must be running for local state (blob/queue/table).
-- **GitHub push protection** blocked a commit because Azurite's emulator files contained function keys — fixed with a proper `.gitignore`.
+- **GitHub push protection** blocked a commit because Azurite's emulator files contained function keys - fixed with a proper `.gitignore`.
 
 ### Test scenarios (`test-durable.http`)
 All six pass locally: under-$100 auto-approve, manager approve, manager reject, timeout→escalated, missing fields, invalid category.
@@ -124,19 +124,19 @@ After running all six scenarios the counts were **approved = 3, rejected = 3, es
 ## 4. Comparison Analysis
 
 ### Development experience
-Version A was **faster to build once the toolchain worked**, but the toolchain fought back first: Core Tools grabbed the wrong Python and crashed on startup. After that, writing the orchestrator was quick and natural — the whole workflow is one readable Python file that lives in Git and is easy to reason about. Version B needed **no environment setup**, but the build was **click-heavy and full of silent traps**. Nothing errors when you compare a boolean to a string, or send plain text where base64 is expected — the run simply does the wrong thing, and you only find out by reading run history. I hit five separate design-time bugs in Version B (boolean casing, numeric comparison, base64 content, run-after, property format) versus effectively one environment bug in Version A. That said, Version B's designer makes the *shape* of the workflow obvious at a glance, which Version A's code does not.
+Version A was **faster to build once the toolchain worked**, but the toolchain fought back first: Core Tools grabbed the wrong Python and crashed on startup. After that, writing the orchestrator was quick and natural - the whole workflow is one readable Python file that lives in Git and is easy to reason about. Version B needed **no environment setup**, but the build was **click-heavy and full of silent traps**. Nothing errors when you compare a boolean to a string, or send plain text where base64 is expected - the run simply does the wrong thing, and you only find out by reading run history. I hit five separate design-time bugs in Version B (boolean casing, numeric comparison, base64 content, run-after, property format) versus effectively one environment bug in Version A. That said, Version B's designer makes the *shape* of the workflow obvious at a glance, which Version A's code does not.
 
 ### Testability
-Version A is clearly **more testable**. I ran the entire thing locally against Azurite and drove all six scenarios from a `test-durable.http` file, with no cloud resources at all. The activity functions are plain Python, so they could be unit-tested with `pytest` directly. Version B is **hard to test locally** — the Logic App is a cloud-only resource, and testing means sending real messages to a real Service Bus queue and inspecting run history by hand. There is no practical way to write automated tests for the Logic App itself, which matters for regression safety.
+Version A is clearly **more testable**. I ran the entire thing locally against Azurite and drove all six scenarios from a `test-durable.http` file, with no cloud resources at all. The activity functions are plain Python, so they could be unit-tested with `pytest` directly. Version B is **hard to test locally** - the Logic App is a cloud-only resource, and testing means sending real messages to a real Service Bus queue and inspecting run history by hand. There is no practical way to write automated tests for the Logic App itself, which matters for regression safety.
 
 ### Error handling
 Version A gives **automatic activity retries** and lets you wrap logic in `try/except`, with the orchestrator replay model guaranteeing consistent state after failures. Version B handles failure through **run-after conditions** and per-connector retry policies. Run-after is powerful and visual, but it is also easy to get wrong (my escalation broke precisely because a run-after didn't include `TimedOut`). Version A's model gave me more confidence that a mid-run failure would recover correctly.
 
 ### Human interaction pattern
-This is where the two differ most. Version A treats "wait for a human, with a timeout" as a **first-class, native feature** — one `task_any` over an event and a durable timer. It is elegant and hard to get wrong. Version B has **no native equivalent**; I had to lean on the Office 365 approval-email webhook plus a timeout plus run-after wiring to fake it. It works, and the approval email is arguably a nicer end-user experience out of the box, but it is a **workaround**, not a language feature, and it depends on a specific connector.
+This is where the two differ most. Version A treats "wait for a human, with a timeout" as a **first-class, native feature** - one `task_any` over an event and a durable timer. It is elegant and hard to get wrong. Version B has **no native equivalent**; I had to lean on the Office 365 approval-email webhook plus a timeout plus run-after wiring to fake it. It works, and the approval email is arguably a nicer end-user experience out of the box, but it is a **workaround**, not a language feature, and it depends on a specific connector.
 
 ### Observability
-Version B wins decisively here. Its **run history is a visual, step-by-step timeline** — I can click any action, see its exact inputs and outputs, and immediately spot which branch ran and why. That is how I diagnosed every one of my Version B bugs. Version A relies on console logs locally and Application Insights in the cloud; the information is all there, but it is **less visual and less immediate** than clicking through a Logic App run.
+Version B wins decisively here. Its **run history is a visual, step-by-step timeline** - I can click any action, see its exact inputs and outputs, and immediately spot which branch ran and why. That is how I diagnosed every one of my Version B bugs. Version A relies on console logs locally and Application Insights in the cloud; the information is all there, but it is **less visual and less immediate** than clicking through a Logic App run.
 
 ### Cost (assumptions stated; figures from Azure Pricing Calculator public rates, 2026)
 **Assumptions:** one expense = one workflow run; Version A ≈ 10 function executions/run; Version B ≈ 10 built-in + 5 standard-connector actions/run; Service Bus **Standard** tier (needed for topics).
@@ -152,9 +152,9 @@ Durable Functions is **much cheaper**, and the gap widens at scale because Logic
 
 ## 5. Recommendation
 
-**If a team asked me to build this for production, I would choose Version A – Durable Functions.** Three reasons decided it. First, **human interaction with a timeout is native** — the exact requirement of this workflow is a first-class feature, not a workaround, so there is less to get wrong and less to maintain. Second, **testability**: I could run and verify the whole pipeline locally and could add real unit tests, which is essential for a workflow that touches money and must not regress. Third, **cost**: at 10,000 expenses/day the Logic Apps bill is roughly an order of magnitude higher because it charges per action and per managed-connector call. Durable Functions also keeps the entire workflow in source control as one reviewable file, which fits normal engineering practice.
+**If a team asked me to build this for production, I would choose Version A – Durable Functions.** Three reasons decided it. First, **human interaction with a timeout is native** - the exact requirement of this workflow is a first-class feature, not a workaround, so there is less to get wrong and less to maintain. Second, **testability**: I could run and verify the whole pipeline locally and could add real unit tests, which is essential for a workflow that touches money and must not regress. Third, **cost**: at 10,000 expenses/day the Logic Apps bill is roughly an order of magnitude higher because it charges per action and per managed-connector call. Durable Functions also keeps the entire workflow in source control as one reviewable file, which fits normal engineering practice.
 
-**I would choose Version B – Logic Apps instead when the team is not developer-heavy, or when the workflow is mostly gluing SaaS systems together.** Logic Apps needs no local toolchain, its approval email and email-sending connectors work out of the box (no code, no SMTP fights), and its visual run history is the best debugging experience I had in this project. For a low-volume internal approval flow owned by an operations or business team — rather than engineers — its speed to build and clarity to non-developers would outweigh the higher cost and weaker testability. In short: **code-first Durable Functions for scale, correctness, and cost; visual Logic Apps for low-code teams and rich built-in integrations.**
+**I would choose Version B – Logic Apps instead when the team is not developer-heavy, or when the workflow is mostly gluing SaaS systems together.** Logic Apps needs no local toolchain, its approval email and email-sending connectors work out of the box (no code, no SMTP fights), and its visual run history is the best debugging experience I had in this project. For a low-volume internal approval flow owned by an operations or business team - rather than engineers - its speed to build and clarity to non-developers would outweigh the higher cost and weaker testability. In short: **code-first Durable Functions for scale, correctness, and cost; visual Logic Apps for low-code teams and rich built-in integrations.**
 
 ---
 
@@ -200,19 +200,19 @@ func start
 |---|---|
 | `Function running locally.png` | Version A running on Azure Functions Core Tools |
 | `scenario 1.png` | Version A auto-approve output |
-| `Run history.png` | Version B — all runs succeeded |
+| `Run history.png` | Version B - all runs succeeded |
 | `scenario 2–5.png` | Version B outcome emails (approved / rejected / escalated) |
 | `scenario 4.png` | Version B escalation (timeout) email |
 | `service bus topic.png` | Topic subscription counts (approved 3 / rejected 3 / escalated 1) |
 
 ## 9. References
-- Azure Durable Functions overview — https://learn.microsoft.com/azure/azure-functions/durable/durable-functions-overview
-- Human interaction & durable timers — https://learn.microsoft.com/azure/azure-functions/durable/durable-functions-timers
-- Azure Logic Apps documentation — https://learn.microsoft.com/azure/logic-apps/logic-apps-overview
-- Azure Service Bus topics & subscriptions — https://learn.microsoft.com/azure/service-bus-messaging/service-bus-queues-topics-subscriptions
-- Service Bus subscription filters — https://learn.microsoft.com/azure/service-bus-messaging/topic-filters
-- Office 365 Outlook "Send approval email" — https://learn.microsoft.com/connectors/office365/
-- Azure Pricing Calculator — https://azure.microsoft.com/pricing/calculator/
+- Azure Durable Functions overview - https://learn.microsoft.com/azure/azure-functions/durable/durable-functions-overview
+- Human interaction & durable timers - https://learn.microsoft.com/azure/azure-functions/durable/durable-functions-timers
+- Azure Logic Apps documentation - https://learn.microsoft.com/azure/logic-apps/logic-apps-overview
+- Azure Service Bus topics & subscriptions - https://learn.microsoft.com/azure/service-bus-messaging/service-bus-queues-topics-subscriptions
+- Service Bus subscription filters - https://learn.microsoft.com/azure/service-bus-messaging/topic-filters
+- Office 365 Outlook "Send approval email" - https://learn.microsoft.com/connectors/office365/
+- Azure Pricing Calculator - https://azure.microsoft.com/pricing/calculator/
 
 ## 10. AI Disclosure
-AI (Claude) was used as a coding and learning assistant throughout this project: to help scaffold the Durable Functions and validation code, to guide the Logic App design in the portal, to diagnose errors (Core Tools/Python interpreter crash, the Logic App boolean/base64/run-after bugs), and to draft this README and the comparison analysis. All code was reviewed, run, and tested by me; all Azure resources were built and all screenshots captured by me. The design decisions, testing, and final wording reflect my own understanding.
+AI (Claude) was used as a coding and learning assistant throughout this project: to help scaffold the Durable Functions and validation code, to guide the Logic App design in the portal, to diagnose errors. All code was reviewed, run, and tested by me; all Azure resources were built and all screenshots captured by me. The design decisions, testing, and final wording reflect my own understanding.
